@@ -9,6 +9,8 @@
 #include <cstring>
 #include <stack>
 #include <queue>
+#include <deque>
+#include <cmath>
 
 int getWeight(const std::string &x) {
     if (x == "^") {
@@ -26,7 +28,7 @@ int getWeight(const std::string &x) {
     return -1;
 }
 
-void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, std::queue<std::string>& postfixQueue) {
+void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, std::deque<std::string>& postfixQueue) {
     std::string delimiter = " ";
     std::locale loc;
     size_t position = 0;
@@ -34,18 +36,17 @@ void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, 
     std::string temp;
     while ((position = infix.find(delimiter)) != std::string::npos) {
         token = infix.substr(0, position);
-
         if (token.find_first_of("()^%/*+-") != std::string::npos) {
             // Input is an operator
-
-            // Current operator is a parenthesis
             if (token == "(") {
+                // Current operator is an opening parenthesis
                 operatorStack.push(token);
             }
             else if (token == ")") {
+                // Current operator is a closing parenthesis
                 while (!operatorStack.empty() && operatorStack.top() != "(") {
                     temp = operatorStack.top();
-                    postfixQueue.push(temp);
+                    postfixQueue.push_back(temp);
                     operatorStack.pop();
                 }
                 if (operatorStack.top() == "(") {
@@ -54,7 +55,6 @@ void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, 
             }
             else {
                 // Current operator is NOT a parenthesis
-                //getWeight(token);
                 if (operatorStack.empty()) {
                     operatorStack.push(token);
                 }
@@ -62,7 +62,7 @@ void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, 
                     while (!operatorStack.empty() && operatorStack.top() != "(" &&
                            getWeight(token) <= getWeight(operatorStack.top())) {
                         temp = operatorStack.top();
-                        postfixQueue.push(temp);
+                        postfixQueue.push_back(temp);
                         operatorStack.pop();
                     }
                     operatorStack.push(token);
@@ -71,28 +71,77 @@ void infixToPostfix(std::string& infix, std::stack<std::string>& operatorStack, 
         }
         else {
             // Input is an operand
-            postfixQueue.push(token);
-            //std::cout << std::stod(token, nullptr) << std::endl;
+            postfixQueue.push_back(token);
         }
 
         infix.erase(0, position + delimiter.length());
     }
-    postfixQueue.push(infix);
+    postfixQueue.push_back(infix);
     while (!operatorStack.empty()) {
         temp = operatorStack.top();
-        postfixQueue.push(temp);
+        postfixQueue.push_back(temp);
         operatorStack.pop();
     }
 }
 
-void printQueue(std::queue<std::string> q)
-{
-    while (!q.empty())
-    {
-        std::cout << q.front() << " ";
-        q.pop();
+void printQueue(std::deque<std::string> pQueue) {
+    while (!pQueue.empty()) {
+        std::cout << pQueue.front() << " ";
+        pQueue.pop_front();
     }
     std::cout << std::endl;
+}
+
+double calculatePostfix(std::deque<std::string>& postfixQueue) {
+    std::string op1, op2;
+    double result = 0;
+    std::stack<std::string> operandStack;
+    std::string temp;
+
+    while (!postfixQueue.empty()) {
+        if (postfixQueue.front().find_first_of("()^%/*+-") != std::string::npos) {
+            op1 = operandStack.top();
+            operandStack.pop();
+            op2 = operandStack.top();
+            operandStack.pop();
+
+            if (postfixQueue.front() == "^") {
+                result = pow(std::stod(op1), std::stod(op2));
+                std::cout << result << std::endl;
+            }
+            else if (postfixQueue.front() == "%") {
+                result = fmod(std::stod(op1), std::stod(op2));
+                std::cout << result << std::endl;
+            }
+            else if (postfixQueue.front() == "*") {
+                result = std::stod(op1) * std::stod(op2);
+                std::cout << result << std::endl;
+            }
+            else if (postfixQueue.front() == "/") {
+                result = std::stod(op1) / std::stod(op2);
+                std::cout << result << std::endl;
+            }
+            else if (postfixQueue.front() == "+") {
+                result = std::stod(op1) + std::stod(op2);
+                std::cout << result << std::endl;
+            }
+            else if (postfixQueue.front() == "-") {
+                result = std::stod(op1) - std::stod(op2);
+                std::cout << result << std::endl;
+            }
+
+            // Push the result
+            operandStack.push(std::to_string(result));
+        }
+        else {
+            // Is operand
+            temp = postfixQueue.front();
+            operandStack.push(temp);
+            // TODO: The correct element in operatorStack is not popped.
+            postfixQueue.pop_front();
+        }
+    }
+    return std::stod(operandStack.top());
 }
 
 int main() {
@@ -101,11 +150,11 @@ int main() {
     //std::getline(std::cin, infix);
 
     std::stack<std::string> operatorStack;
-    std::queue<std::string> postfixQueue;
+    std::deque<std::string> postfixQueue;
 
     infixToPostfix(infix, operatorStack, postfixQueue);
-
     printQueue(postfixQueue);
+    std::cout << calculatePostfix(postfixQueue);
 
     return 0;
 }
